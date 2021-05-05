@@ -8,7 +8,9 @@ from rest_framework.pagination import LimitOffsetPagination
 from django.core.mail import send_mail
 from datetime import datetime
 from rest_framework.decorators import api_view, renderer_classes
+from django.utils.decorators import method_decorator
 
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from customer_dashboard.models import UserProfile
 from customer_dashboard.serializers import UserSerializer, FileNumberSerializer
@@ -94,10 +96,29 @@ class KeyJsonView(APIView, LimitOffsetPagination):
             results.append(sequence)
         return Response({'data': results})
 
+
+class DashboardForAuditKeyView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def get(self, request):
+        pending_groups = KeyGroup.objects.filter(audit_status='pending').count()
+        waiting_groups = KeyGroup.objects.filter(audit_status='waiting_for_confirmation').count()
+        confirmed_groups = KeyGroup.objects.filter(audit_status='confirmed').count()
+        rejected_groups = KeyGroup.objects.filter(audit_status='rejected').count()
+        pending_keys = KeySequence.objects.filter(audit_status='pending').count()
+        waiting_keys = KeySequence.objects.filter(audit_status='waiting_for_confirmation').count()
+        confirmed_keys = KeySequence.objects.filter(audit_status='confirmed').count()
+        rejected_keys = KeySequence.objects.filter(audit_status='rejected').count()
+        response = {
+            'groups': {'rejected': rejected_groups,'pending' : pending_groups, 'waiting': waiting_groups, 'confirmed': confirmed_groups},
+            'keys': {'rejected': rejected_keys,'pending' : pending_keys, 'waiting': waiting_keys, 'confirmed': confirmed_keys},
+            }
+        return Response(response)
+        
+
 class AllKeyGroupJSONView(APIView):
     permission_classes = (IsAuthenticated,)
     def get(self, request):
-        key_groups = KeyGroup.objects.all()
+        key_groups = KeyGroup.objects.filter(audit_status='pending')
         serializer = KeyGroupSerializer(key_groups, many=True)
         response = {
             'data': serializer.data,
@@ -106,8 +127,9 @@ class AllKeyGroupJSONView(APIView):
     
     def post(self, request):
         keys = request.data.get('groups')
+        groups = KeyGroup.objects.filter(id__in=keys).update(audit_status='waiting_for_confirmation')
         sequences = KeySequence.objects.filter(Q(group__in=keys))
-        response =  send_confirmation_to_keys_owners(sequences, request, "key")
+        response =  send_confirmation_to_keys_owners(sequences, request, "group")
         return Response(response)
 
 def send_confirmation_to_keys_owners(sequences, request, audit_type):
@@ -123,7 +145,7 @@ def send_confirmation_to_keys_owners(sequences, request, audit_type):
             format_data[seq.email]['name'] = seq.key_holder
     for email, values in format_data.items():
         report =  KeyAuditReport.objects.create(run_at=datetime.now(),created_by=request.user,audit_type=audit_type)
-        KeySequence.objects.filter(id__in=values['sequence_ids']).update(audit_report=report.id) 
+        KeySequence.objects.filter(id__in=values['sequence_ids']).update(audit_report=report.id, audit_status='waiting_for_confirmation') 
         send_mail(
             "Key audit",
             f"Audit of Key(s) by {request.user.full_name()}",
@@ -141,30 +163,109 @@ def send_confirmation_to_keys_owners(sequences, request, audit_type):
     response = {'success': True, 'status': status.HTTP_200_OK}
     return response
     
-    
+class CompleteAuditView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, audit_type):
+        if audit_type == 'group':
+            KeyGroup.objects.all().update(audit_status='pending')       
+        if audit_type == 'key':
+            KeySequence.objects.all().update(audit_status='pending')
+        response = {
+            'success': True
+        }
+        return Response(response)
+
 @api_view(('GET',))
 @renderer_classes((TemplateHTMLRenderer, JSONRenderer))
 def get_report_sequences(request, id):
     if request.method == 'GET':
         keyreport = KeyAuditReport.objects.get(url=id)
         if keyreport:
-            if keyreport.confirm == False:
-                keys = KeySequence.objects.filter(audit_report__id=keyreport.id)
-                if len(keys) > 0:
-                    response = {
-                        'data' : KeySequenceSerializer(keys, many=True).data,
-                        'success': True,
-                        'status': status.HTTP_200_OK
-                    }
-                    return Response(response)
-                else: 
-                    keyreport.delete()
-    return Response({'success': False})
+            keys = KeySequence.objects.filter(audit_report__id=keyreport.id, audit_status='waiting_for_confirmation')
+            if len(keys) > 0:
+                response = {
+                    'data' : KeySequenceSerializer(keys, many=True).data,
+                    'success': True,
+                    'status': status.HTTP_200_OK
+                }
+                return Response(response)
+    return Response({'success': False, 'data': []})
+
+@api_view(('POST',))
+@renderer_classes((TemplateHTMLRenderer, JSONRenderer))
+@csrf_exempt
+def ConfirmKeyView(request, audit_key, seq_id):
+    key_seq = KeySequence.objects.filter(id=seq_id)
+    key_seq.update(confirmed_at=datetime.now(), audit_status='confirmed', audit_report=None)
+    group = key_seq[0].group
+    audit_report = KeyAuditReport.objects.get(url=audit_key)
+    receiver = audit_report.created_by
+    send_mail(
+        "Key audit Confirmation",
+        f"Audit of Key is Confirmed by {key_seq[0].key_holder}",
+        key_seq[0].email,
+        [receiver.email],
+        html_message=render_to_string(
+            'email/key_audit_confirm.html',
+            {
+                'data': key_seq,
+                'sender_name': key_seq[0].key_holder,
+                'name': receiver.full_name(), 
+            }
+        )
+    )
+    if group:
+        key_sequence_waiting = KeySequence.objects.filter(group=group.id,audit_status='confirmed').count()
+        total_key_sequences = KeySequence.objects.filter(group=group.id).count()
+        if key_sequence_waiting == total_key_sequences:
+            KeyGroup.objects.filter(id=group.id).update(confirmed_at=datetime.now(),audit_status='confirmed')
+    
+    return Response({'success': True})
+
+@api_view(('POST',))
+@renderer_classes((TemplateHTMLRenderer, JSONRenderer))
+@csrf_exempt
+def RejectKeyView(request, audit_key, seq_id):
+    key_seq = KeySequence.objects.filter(id=seq_id)
+    key_seq.update(audit_status='rejected', audit_report=None,lost_key=True)
+    audit_report = KeyAuditReport.objects.get(url=audit_key)
+    receiver = audit_report.created_by
+    key_stamp = key_seq[0].key_id + " - "+ str(key_seq[0].sequence)
+    send_mail(
+        "Key Status - Calgary Lock and Safe",
+        f"Status of Key(s) for {key_stamp} by {key_seq[0].key_holder}",
+        EMAIL_HOST_USER,
+        [key_seq[0].email, receiver.email,settings.EMAIL_TO_CALGARY_REPORTS],
+        html_message=render_to_string(
+            'email/key_status_updated.html',
+            {
+                'data': key_seq[0],
+                'key_stamp': key_stamp
+            }
+        )
+    )
+    send_mail(
+        "Key audit Rejected",
+        f"Audit of Key is Rejected by {key_seq[0].key_holder}",
+        key_seq[0].email,
+        [receiver.email],
+        html_message=render_to_string(
+            'email/key_audit_reject.html',
+            {
+                'data': key_seq,
+                'sender_name': key_seq[0].key_holder,
+                'name': receiver.full_name(), 
+            }
+        )
+    )
+    return Response({'success': True})
 
 class SelectKeySequencesJSONView(APIView):
     permission_classes = (IsAuthenticated,)
     def get(self, request):
         key_seqs = KeySequence.objects.filter((~Q(email='') & ~Q(email=None)) | (~Q(phone='') & ~Q(phone=None)))
+        key_seqs = key_seqs.filter(audit_status='pending')
         serializer = KeySequenceSerializer(key_seqs, many=True)
         response = {
             'data': serializer.data,
@@ -296,20 +397,23 @@ class KeySequenceView(APIView):
                     serializer = ActionKeySequenceSerializer(instance, data=request.data, context={'request': request})
                     if serializer.is_valid(raise_exception=True):
                         serializer.save()
-                        key_stamp = instance.key_id + " - "+ str(instance.sequence)
-                        send_mail(
-                            "Key Status - Calgary Lock and Safe",
-                            f"Status of Key(s) for {key_stamp} by {request.user.full_name()}",
-                            EMAIL_HOST_USER,
-                            [request.user.email, instance.email,settings.EMAIL_TO_CALGARY_REPORTS],
-                            html_message=render_to_string(
-                                'email/key_status_updated.html',
-                                {
-                                    'data': instance,
-                                    'key_stamp': key_stamp
-                                }
+                        if request.data.get('verify_method'):
+                            print('Donot need to send email')
+                        else:
+                            key_stamp = instance.key_id + " - "+ str(instance.sequence)
+                            send_mail(
+                                "Key Status - Calgary Lock and Safe",
+                                f"Status of Key(s) for {key_stamp} by {request.user.full_name()}",
+                                EMAIL_HOST_USER,
+                                [request.user.email, instance.email,settings.EMAIL_TO_CALGARY_REPORTS],
+                                html_message=render_to_string(
+                                    'email/key_status_updated.html',
+                                    {
+                                        'data': instance,
+                                        'key_stamp': key_stamp
+                                    }
+                                )
                             )
-                        )
                         response = {'success': True, 'status': status.HTTP_200_OK, 'data': serializer.data}
                 except Exception as e:
                     logger.error('%s', e)
@@ -323,7 +427,6 @@ class KeySequenceView(APIView):
                 'status': status.HTTP_400_BAD_REQUEST,
                 'message': NO_PERMISSOIN_MANAGE_KEYS_MESSAGE
             })
-
 
 # export csv file (only for particular key id) (now not in use)
 class ExportCSVKeySequence(APIView):

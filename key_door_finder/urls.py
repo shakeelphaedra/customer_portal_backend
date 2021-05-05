@@ -3,8 +3,6 @@ from key_door_finder import views
 
 urlpatterns = [
      
-    #audit reports 
-    path('audit_report/<str:id>/', views.get_report_sequences, name='get_report_sequences'),
     # key quantity
     path('keys/', views.KeyQtyView.as_view(), name='view_keys'),
     path('keysjson/', views.KeyJsonView.as_view(),name='keys_json'),
@@ -22,7 +20,16 @@ urlpatterns = [
     path('sequence/<str:file_number>/<str:key_id>/', views.KeySequenceListView.as_view(), name='key_sequence'),
     path('select_seqs_json/', views.SelectKeySequencesJSONView.as_view(), name="selectsequences_json"),
 
+    # key audit
+    path('keyaudits/', views.DashboardForAuditKeyView.as_view(), name="key_audits"),
+
+    #audit reports 
+    path('audit_report/<str:id>/', views.get_report_sequences, name='get_report_sequences'),
+    path('audit_report/<str:audit_key>/confirm/<str:seq_id>', views.ConfirmKeyView, name='confirm_report_sequences'),
+    path('audit_report/<str:audit_key>/reject/<str:seq_id>', views.RejectKeyView, name='confirm_report_sequences'),
+    path('complete_audit/<str:audit_type>', views.CompleteAuditView.as_view(), name='complete_audit_report_sequences'),
     # key request
+
     path('key-request/', views.KeyRequestView.as_view(), name='key_request'),
 
     # CSV files

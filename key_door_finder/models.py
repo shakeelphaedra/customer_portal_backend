@@ -24,10 +24,21 @@ class KeyQty(models.Model):
 
     def __str__(self):
         return self.key_id
-
+AUDIT_STATUS = (
+    ('pending', ('Available for Confirmation')),
+    ('waiting_for_confirmation', ('Waiting for Confirmation')),
+    ('rejected', ('Rejected by someone')),
+    ('confirmed', ('Confirmed by someone')),
+)
 class KeyGroup(models.Model):
     name = models.CharField(max_length=255, null=False)
     issue_date = models.DateTimeField(null=True)
+    audit_status = models.CharField(
+       max_length=32,
+       choices=AUDIT_STATUS,
+       default='pending',
+    )
+    confirmed_at =  models.DateTimeField(null=True, blank=True, max_length=255)
 
     class Meta:
         db_table = 'KeyGroups'
@@ -39,8 +50,6 @@ class KeyAuditReport(models.Model):
     run_at =  models.DateTimeField(null=True, blank=True, max_length=255)
     created_by =  models.ForeignKey(to=User, null=True , blank=True,on_delete=models.SET_NULL)
     audit_type = models.CharField(max_length=255, null=True, blank=True)
-    confirm = models.BooleanField(default=False, null=True, blank=True)
-    confirmed_at =  models.DateTimeField(null=True, blank=True, max_length=255)
     url = models.CharField(max_length=255, null=True, blank=True)
 
     def generate_url(self):
@@ -63,10 +72,17 @@ class KeySequence(models.Model):
     date_issued = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(max_length=255, null=True, blank=True)
+    verify_method = models.CharField(max_length=255, null=False, blank=False, default='email')
     lost_key = models.BooleanField(default=False, null=True, blank=True)
     broken_key = models.BooleanField(default=False, null=True, blank=True)
     group = models.ForeignKey(to=KeyGroup,null=True, on_delete=models.SET_NULL)
     audit_report = models.ForeignKey(to=KeyAuditReport,null=True, on_delete=models.SET_NULL)
+    confirmed_at =  models.DateTimeField(null=True, blank=True, max_length=255)
+    audit_status = models.CharField(
+       max_length=32,
+       choices=AUDIT_STATUS,
+       default='pending',
+    )
     class Meta:
         db_table = 'KeySequence'
 

@@ -61,7 +61,7 @@ def get_service_request_dispatches(cus_no,loc_no):
             if cust_res:
                 data_dict['cus_no'] = cust_res[0]
                 data_dict['last_name'] = cust_res[1]
-                query = f"""SELECT Dispatch.[CustNo],Dispatch.[LocNo],Dispatch.[Dispatch] ,Dispatch.[RecDate],Dispatch.[PONum], Dispatch.[RecBy], Dispatch.[Calledinby] FROM Dispatch WHERE Dispatch.[LocNo]='{loc_no}' AND Dispatch.[CustNo]='{cus_no}'"""
+                query = f"""SELECT Dispatch.[CustNo],Dispatch.[LocNo],Dispatch.[Dispatch] ,Dispatch.[RecDate],Dispatch.[PONum], Dispatch.[RecBy], Dispatch.[Calledinby] FROM Dispatch WHERE Dispatch.[LocNo]='{loc_no}' AND Dispatch.[CustNo]='{cus_no}' AND Dispatch.[Complete] IS NULL"""
                 res = cursor.execute(query)
                 if res:
                     ret_data = res.fetchall()

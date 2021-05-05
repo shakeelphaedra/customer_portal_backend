@@ -10,7 +10,7 @@ from rest_framework import serializers
 from key_door_finder.models import KeyQty, KeyGroup, KeySequence, KeyRequest, KeyRequestQuantity, KeyRequestImage
 from customer_dashboard.models import Audit
 
-
+import pdb
 class KeySequenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = KeySequence
@@ -18,6 +18,7 @@ class KeySequenceSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         response = super().to_representation(instance)
         response['name'] = str(instance)
+        response['group_data'] = KeyGroupSerializerSingle(instance.group).data
         return response
 
 class KeyGroupSerializer(serializers.ModelSerializer):
@@ -31,6 +32,10 @@ class KeyGroupSerializer(serializers.ModelSerializer):
         response['sequence'] = KeySequenceSerializer(query, many=True).data
         return response
 
+class KeyGroupSerializerSingle(serializers.ModelSerializer):
+    class Meta:
+        model = KeyGroup
+        fields = '__all__'
 
 class KeyQtySerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,7 +69,7 @@ class EditKeySequenceSerializer(serializers.ModelSerializer):
 class ActionKeySequenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = KeySequence
-        fields = ['lost_key', 'broken_key']
+        fields = ['lost_key', 'broken_key','verify_method']
 
 
 class KeyRequestQuantitySerializer(serializers.ModelSerializer):

@@ -17,7 +17,7 @@ class AccountNumber(models.Model):
 
 class FileNumber(models.Model):
     account = models.ForeignKey(AccountNumber, related_name='file_numbers', on_delete=models.CASCADE)
-    file_number = models.CharField(max_length=255)  #, unique=True)
+    file_number = models.CharField(max_length=255 , unique=True)
     location = models.CharField(max_length=255, null=True, blank=True)
     system_name = models.CharField(max_length=255, null=True, blank=True)
 
