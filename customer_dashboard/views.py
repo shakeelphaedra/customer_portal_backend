@@ -11,7 +11,6 @@ from django.template.loader import render_to_string
 from django.conf.global_settings import EMAIL_HOST_USER
 from django.conf import settings
 import pdb
-
 import pdfkit
 import logging
 import datetime
@@ -749,6 +748,9 @@ class PayInvoiceView(APIView):
                 'submit_for_settlement': True
             }
         })
+        
+        email = request.data['email']
+        phone = request.data['phone']
         transaction_id = result.transaction.id
         account_number = request.user.userprofile.account_number.account_number
         gateway = get_gateway()
@@ -774,7 +776,7 @@ class PayInvoiceView(APIView):
                 PAYMENT_APPROVED_EMAIL_SUBJECT,
                 f"Payment of {request.data['invoice']} approved",
                 EMAIL_HOST_USER,
-                [request.user.email],
+                [request.user.email, email],
                 html_message=render_to_string(
                     PAYMENT_APPROVED_TEMPLATE,
                     {
@@ -825,7 +827,7 @@ class PayInvoiceView(APIView):
                 PAYMENT_DENIED_EMAIL_SUBJECT,
                 f"Payment of {request.data['invoice']} denied",
                 EMAIL_HOST_USER,
-                [request.user.email],
+                [request.user.email, email],
                 html_message=render_to_string(
                     PAYMENT_DENIED_TO_CUSTOMER_TEMPLATE,
                     {
@@ -1048,6 +1050,8 @@ class PayAllInvoiceView(APIView):
                 'submit_for_settlement': True
             }
         })
+        email = request.data['email']
+        phone = request.data['phone']
         transaction_id = result.transaction.id
         account_number = request.user.userprofile.account_number.account_number
         gateway = get_gateway()
@@ -1078,7 +1082,7 @@ class PayAllInvoiceView(APIView):
                 PAYMENT_APPROVED_EMAIL_SUBJECT,
                 f"Payment of {request.data['location']} is approved",
                 EMAIL_HOST_USER,
-                [request.user.email],
+                [request.user.email,email],
                 html_message=render_to_string(
                     PAYMENT_APPROVED_TEMPLATE,
                     {
@@ -1133,7 +1137,7 @@ class PayAllInvoiceView(APIView):
                 PAYMENT_DENIED_EMAIL_SUBJECT,
                 f"Payment of {request.data['location']} denied",
                 EMAIL_HOST_USER,
-                [request.user.email],
+                [request.user.email, email],
                 html_message=render_to_string(
                     PAYMENT_DENIED_TO_CUSTOMER_TEMPLATE,
                     {
@@ -1305,6 +1309,8 @@ class PayQuoteView(APIView):
                 'submit_for_settlement': True
             }
         })
+        email = request.data['email']
+        phone = request.data['phone']
         transaction_id = result.transaction.id
         account_number = request.user.userprofile.account_number.account_number
         gateway = get_gateway()
@@ -1330,7 +1336,7 @@ class PayQuoteView(APIView):
                 PAYMENT_APPROVED_EMAIL_SUBJECT,
                 f"Payment of {request.data['quote']} approved",
                 EMAIL_HOST_USER,
-                [request.user.email],
+                [request.user.email, email],
                 html_message=render_to_string(
                     PAYMENT_APPROVED_TEMPLATE,
                     {
@@ -1381,7 +1387,7 @@ class PayQuoteView(APIView):
                 PAYMENT_DENIED_EMAIL_SUBJECT,
                 f"Payment of {request.data['quote']} denied",
                 EMAIL_HOST_USER,
-                [request.user.email],
+                [request.user.email, email],
                 html_message=render_to_string(
                     PAYMENT_DENIED_TO_CUSTOMER_TEMPLATE,
                     {
@@ -1450,7 +1456,7 @@ class ServiceRequestDispatchesView(APIView):
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
                 'message': INTERNAL_SERVER_ERROR_500_MESSAGE
             })
-
+            
 class ServiceRequestDispatchView(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -1625,3 +1631,28 @@ def all_invoice_pdf_view(request, cus_no):
             logger.error('%s', e)
     else:
         return Response({'message': 'Not allowed'}, status.HTTP_400_BAD_REQUEST)
+
+
+
+def get_braintree_client_token(request):
+    return JsonResponse({'token': get_gateway().client_token.generate(), 
+                    'message': 'Success',
+                    'status': status.HTTP_200_OK,
+                    'success': True
+    })
+         
+
+
+class PayThroughBraintree(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    # get list of location and address
+    def post(self, request):
+        nonce = request.data['nonce']
+        amount = request.data['amount']
+        result = get_gateway().Transaction.sale({
+            amount: amount,
+            paymentMethodNonce: nonce
+        })
+        return JsonResponse({success: True}, safe=False)
+        

@@ -48,7 +48,9 @@ urlpatterns = [
     path('invoice/payment/<str:loc_no>/', views.PayInvoiceForLocationView.as_view(), name='pay_invoice_for_location'),
     path('invoice/all/payment/', views.PayAllInvoiceView.as_view(), name='pay_all_invoice'),
     path('quote/payment/', views.PayQuoteView.as_view(), name='pay_quote'),
-
+    # braintree
+    path('braintree/get_client_token', views.get_braintree_client_token, name="get_client_token"),
+    path('payments/', views.PayThroughBraintree.as_view(), name="PayThroughBraintree"),
     # braintree webhook
     # path('status/webhook/', BraintreeWebhookView.as_view(), name='braintree_webhook'),
 
