@@ -22,7 +22,7 @@ from customer_dashboard.models import User, Audit, AccountNumber, FileNumber, Tr
 from customer_dashboard.serializers import CreateNewPrimaryUserSerializer, ChangePasswordSerializer, \
     AdditionalUserSerializer, UserAccessSerializer, UserSerializer, AuditSerializer, ToogleUserActiveSerializer, \
     FileNumberSerializer, CustomLoginSerializer, ResetPasswordSerializer
-from customer_dashboard.query import update_company_details, get_company_details, get_accounting, get_invoice_list, get_invoice, \
+from customer_dashboard.query import update_company_details,update_invoices, get_company_details, get_accounting, get_invoice_list, get_invoice, \
     get_quotations,get_dispatch_parts, get_service_request,get_service_request_dispatches, get_quotes, get_quotes_list, get_invoice_for_query, get_last_name, \
     get_all_invoice_of_location, get_all_invoice, get_invoice_list_with_address
 from customer_dashboard.custom_exception import EmailNotMatchedException, PasswordException, NotFoundError, \
@@ -1052,6 +1052,7 @@ class PayAllInvoiceView(APIView):
         })
         email = request.data['email']
         phone = request.data['phone']
+
         transaction_id = result.transaction.id
         account_number = request.user.userprofile.account_number.account_number
         gateway = get_gateway()
@@ -1077,6 +1078,10 @@ class PayAllInvoiceView(APIView):
                 user=request.user,
                 modifications=f"Payment for all invoice ({', '.join([invoice_dict['invoice'] for invoice_dict in request.data['list_of_invoice']])}) paid by {request.user.full_name()} is approved"
             )
+            # update paid amount in receivab
+
+            invoices_list = [d['invoice'] for d in request.data['list_of_invoice']]
+            update_invoices(invoices_list)
             # send confirmation mail to customer
             send_mail(
                 PAYMENT_APPROVED_EMAIL_SUBJECT,

@@ -533,6 +533,20 @@ def get_all_invoice(cus_no):
     else:
         raise ConnectionError
 
+def update_invoices(invs_no):
+    con = connect_to_server()
+    if con:
+        try:
+            cursor = con.cursor()
+            query = f"""UPDATE Receivab SET Paid = InvAmt WHERE Invoice IN ({invs_no.join(",")})"""
+            result = cursor.execute(query)
+            cu.commit()
+            return result
+        except Exception as e:
+            logger.error('%s', e)
+            raise ESCDataNotFetchingError
+    else:
+        raise ConnectionError
 
 # function for getting location name
 def get_location_name(cus_no, loc_no):

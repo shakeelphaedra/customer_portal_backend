@@ -45,15 +45,17 @@
                     <span> {{ customer_id }} </span><br>
                     <label>Customer Number</label>
                     <span> {{ account_number }}</span><br><br>
-                    <label>INVOICE ID(s)</label>
-                    {% if multiple %}
-                        {% for inv in invoice %}
-                            <span> {{ inv.invoice }} - $ {{ inv.amount }}</span><br>
-                        {% endfor %}
-                        <br>
-                    {% else %}
-                        <span> {{ invoice }} </span><br><br>
-                    {% endif %}
+                    <label style="float:left">INVOICE ID(s)</label>
+                    <div style="margin-left: 141px">
+                        {% if multiple %}
+                            {% for inv in invoice %}
+                                <span> {{ inv.invoice }} - $ {{ inv.amount }}</span><br>
+                            {% endfor %}
+                            <br>
+                        {% else %}
+                            <span> {{ invoice }} </span><br><br>
+                        {% endif %}
+                    </div>
 
                     <label>AMOUNT</label>
                     <span> $ {{ amount }}</span><br><br>
