@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
     path('api/customer/', include(('customer_dashboard.urls', 'customer_dashboard'), namespace='customer_dashboard')),
     path('api/kdfinder/', include(('key_door_finder.urls', 'key_door_finder'), namespace='key_door_finder')),
+    path('api/dispatcher/', include(('dispatch.urls', 'dispatch'), namespace='dispatch')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

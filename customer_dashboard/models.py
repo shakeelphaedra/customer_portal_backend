@@ -86,6 +86,7 @@ class User(AbstractBaseUser):  # PermissionsMixin):
     user_type = models.CharField(max_length=255)
     parent = models.ForeignKey('self', related_name='children', blank=True, null=True, on_delete=models.CASCADE)
     braintree_customer_id = models.CharField(max_length=255, null=True, blank=True)
+    emp_no = models.CharField(max_length=32, blank=True, null=True)
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
