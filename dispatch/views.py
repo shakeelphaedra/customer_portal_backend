@@ -199,8 +199,6 @@ class UpdateDispatchStatus(APIView):
         try:
             status =  request.data['status'].upper()
             valid_status = ['OFF', 'TRAVEL', 'WORKING']
-            import pdb
-            pdb.set_trace()
             if status and  status in valid_status:
                 
                 context = update_dispatch_status(status, disp_no)
