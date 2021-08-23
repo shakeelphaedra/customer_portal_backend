@@ -44,10 +44,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'djcelery_email',
+    'drf_yasg',
 
     # Custom apps
     'customer_dashboard',
     'key_door_finder',
+    'dispatch',
+    
 ]
 
 MIDDLEWARE = [
@@ -69,7 +72,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
 }
 
 ROOT_URLCONF = 'calgary_web_portal.urls'
@@ -100,13 +103,6 @@ DATABASES = {
     'default': {
         'ENGINE': config('CUSDB_ENGINE'),
         'NAME': config('CUSDB_NAME'),
-        'HOST': config('CUSDB_HOST'),
-        'USER': config('CUSDB_USER'),
-        'PASSWORD': config('CUSDB_PASSWORD'),
-        'OPTIONS': {
-            'driver': config('CUSDB_DRIVER'),
-            'unicode_results': config('CUSDB_UNICODE_RESULTS', cast=bool),
-        }
     },
     'esc': {
         'ENGINE': config('ESC_ENGINE'),

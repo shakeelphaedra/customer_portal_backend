@@ -453,6 +453,8 @@ def get_service_request(cus_no):
                         'address': d[2]
                     })
                 data_dict['data'] = data
+                # import pdb
+                # pdb.set_trace()
                 con.close()
                 return data_dict
         except Exception as e:

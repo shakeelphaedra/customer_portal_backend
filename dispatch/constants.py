@@ -1,0 +1,12 @@
+INTERNAL_SERVER_ERROR_500_MESSAGE = 'Something went wrong! Please try later'
+ESC_DATABASE_CONNECTION_ERROR = 'ESC Database Connection Error'
+PAYMENT_APPROVED_EMAIL_SUBJECT = "Payment Approved - Calgary Lock and Safe"
+PAYMENT_DENIED_EMAIL_SUBJECT = "Payment Denied - Calgary Lock and Safe"
+UPDATE_COMPANY_DETAILS_SUBJECT = "Company Details Updated - Calgary Lock and Safe"
+PAYMENT_APPROVED_TEMPLATE = 'email/payment_approved_to_customer.html'
+PAYMENT_APPROVED_TO_CALGARY_TEMPLATE = 'email/payment_approved_to_calgary.html'
+PAYMENT_DENIED_TO_CUSTOMER_TEMPLATE = 'email/payment_denied_to_customer.html'
+UPDATE_COMPANY_DETAILS_TEMPLATE = 'email/update_company_details.html'
+PAYMENT_DENIED_TO_CALGARY_TEMPLATE = 'email/payment_denied_to_calgary.html'
+PAYMENT_SUCCESSFUL_MESSAGE = 'Payment successful'
+PAYMENT_DENIED_MESSAGE = 'Payment denied'
