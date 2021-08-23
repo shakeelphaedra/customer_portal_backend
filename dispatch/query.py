@@ -1,5 +1,8 @@
 from customer_dashboard.query import connect_to_server
-from customer_dashboard.custom_exception import NotFoundError, ConnectionError, ESCDataNotFetchingError
+from customer_dashboard.custom_exception import (NotFoundError, ConnectionError,
+                                                 ESCDataNotFetchingError)
+from dispatch.custom_exception import DispatchUpdateError
+
 
 
 
@@ -196,15 +199,64 @@ def check_note_availability(disp_no):
         res = run.fetchone()
         if res:
             if res[0] == 0:
-                return False
-                # query2 = f""" Update Dispatch set AHSDispatch = 1 where Dispatch = '{disp_no}' """
-                # run = cursor.execute(query2)
-                # import pdb
-                # pdb.set_trace()
-                # con.close()
+                try:
+                    query2 = f""" Update Dispatch set AHSDispatch = 1 where Dispatch = '{disp_no}' """
+                    run = cursor.execute(query2)
+                    cursor.commit()
+                    con.close()
+                    return False
+                except Exception as e:
+                    print(e)
             else:
                 return True
         else:
             raise ESCDataNotFetchingError
+    else:
+        raise ConnectionError
+
+
+
+def search_parts(part_name):
+    con = connect_to_server()
+    if con:
+        try:
+            cursor = con.cursor()
+            query = f""" select Inven.[Part], Inven.[Desc], Inven.[Type] from Inven Where Part  Like '%{part_name}%' """
+            run = cursor.execute(query)
+            res = run.fetchall()
+            data_dict = {}
+            data = []
+            if res:
+                data_dict['total'] = len(res)
+                for record in res:
+                    data.append({
+                        'Name': record[0],
+                        'Description': record[1],
+                        'Type': record[2]
+
+                    })
+                data_dict['data'] = data
+                return data_dict
+            else:
+                raise NotFoundError
+        except Exception as e:
+            raise ESCDataNotFetchingError()
+            
+    else:
+        raise ConnectionError
+
+
+def update_dispatch_status(status, disp_no):
+    con = connect_to_server()
+
+    if con:
+        
+        query = f""" Update DispTech set Status = '{status}' where Dispatch = '{disp_no}' """
+        cursor = con.cursor()
+        update_status = cursor.execute(query)
+        cursor.commit()
+        con.close()
+        return {'success': True}
+        
     else:
         raise ConnectionError

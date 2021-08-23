@@ -44,11 +44,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'djcelery_email',
+    'drf_yasg',
 
     # Custom apps
     'customer_dashboard',
     'key_door_finder',
-    'dispatch'
+    'dispatch',
+    
 ]
 
 MIDDLEWARE = [
@@ -70,7 +72,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
 }
 
 ROOT_URLCONF = 'calgary_web_portal.urls'
