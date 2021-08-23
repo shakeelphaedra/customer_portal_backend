@@ -8,7 +8,7 @@ from .models import User, UserProfile, UserAccess, Audit, AccountNumber, FileNum
 # Register your models here.
 class UserAdmin(admin.ModelAdmin):
     list_display = ['first_name', 'last_name', 'email', 'phone', 'last_login', 'last_modified', 'created_at',
-                    'is_superuser', 'is_staff', 'is_active', 'user_type', 'parent', 'braintree_customer_id',
+                    'is_superuser', 'is_staff', 'is_active', 'user_type', 'emp_no', 'parent', 'braintree_customer_id',
                     'get_account_number', 'get_primary_user']
 
     list_filter = ('userprofile__account_number__account_number', 'user_type')

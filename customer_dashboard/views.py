@@ -1579,7 +1579,7 @@ class ServiceRequestView(APIView):
 # function for download invoice pdf
 def invoice_pdf_view(request, cus_no, loc_no, invoice):
     if request.method == 'GET':
-        try:
+        try: 
             data = get_invoice(cus_no, loc_no, invoice)
             html = render_to_string('pdf/invoice.html', {
                 'cus_no': data['cus_no'],
